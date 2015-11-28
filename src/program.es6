@@ -151,7 +151,7 @@ function findDockerCompose(profileName = configFile.getProfileName()) {
   const cwd = process.cwd();
 
   for (let file of fs.readdirSync(cwd)) {
-    if (file.match(new RegExp(`compose(@${profileName})?`))) {
+    if (file.match(new RegExp(`docker-compose(@${profileName})?`))) {
       return file;
     }
   }
