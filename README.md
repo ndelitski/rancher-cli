@@ -20,6 +20,7 @@ I am using `rancher-cli` container to process deploy operations to many environm
 ## Commands
 
 ### init
+Create `.rancher` file in a user home directory
 ### up
 If service is not created - trigger launch, otherwise `upgrade` command will be used.
 ### ls
