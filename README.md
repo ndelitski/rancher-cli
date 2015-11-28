@@ -26,7 +26,7 @@ If service is not created - trigger launch, otherwise `upgrade` command will be 
 ### ls
 List services and stacks in environment
 ### compose
-Fallback to `rancher-compose commands`
+Fallback to `rancher-compose` commands
 ### ssh AWS EC2-only (not impl)
 Similar to my [ssh2ec2](https://github.com/ndelitski/ssh2ec2) project.
 Will launch ssh to EC2 instance where service container is running and then be forwarded to the container.
