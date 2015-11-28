@@ -1,0 +1,14 @@
+cache:
+  mount:
+    - .git
+publish:
+  docker:
+    when:
+      event: tag
+    username: ndelitski
+    password: $$DOCKER_PASSWORD
+    email: ndelitski@gmail.com
+    repo: ndelitski/rancher-cli
+    tag:
+      - latest
+      - $$TAG

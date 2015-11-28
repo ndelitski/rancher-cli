@@ -1,0 +1,4 @@
+*
+!bin/rancher.js
+!dist/**
+!package.json
