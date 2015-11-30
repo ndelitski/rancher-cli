@@ -10,6 +10,3 @@ COPY . /opt/rancher
 RUN npm -g i /opt/rancher
 
 ENTRYPOINT ["rancher"]
-
-
-
