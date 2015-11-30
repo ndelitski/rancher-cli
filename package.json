@@ -1,6 +1,6 @@
 {
   "name": "rancher-cli",
-  "version": "0.0.2",
+  "version": "0.1.0",
   "description": "Rancher CLI interface",
   "preferGlobal": "true",
   "bin": {
@@ -18,7 +18,9 @@
     "commander": "^2.9.0",
     "inquirer": "^0.11.0",
     "lodash": "^3.10.1",
-    "string-table": "^0.1.5"
+    "rancher-compose-extra": "^0.1.2",
+    "string-table": "^0.1.5",
+    "tmp": "0.0.28"
   },
   "devDependencies": {
     "babel": "^5.8.33"

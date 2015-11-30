@@ -136,7 +136,7 @@ program
   .description('Pass to rancher-compose')
   .actionAsync(async ({file, confirmUpdate, forceUpdate, update, pull, dir, rancher, profile, stack}) => {
     const stackName = stack || path.basename(dir);
-    const dockerComposeFile =  file || findDockerCompose({dir, profile});
+    const dockerComposeFile =  file || await findDockerCompose({dir, profile});
     const rancherComposeFile = rancher || findRancherCompose({profile, dir});
     await client(profile).compose('up', {dir, forceUpdate, confirmUpdate, update, pull, stack: stackName, dockerComposeFile , rancherComposeFile});
   });
@@ -147,20 +147,30 @@ program.parse(process.argv);
 import fs from 'fs';
 import path from 'path';
 
-function findDockerCompose({profile, dir}) {
+async function findDockerCompose({profile, dir}) {
   const config = configFile.profile(profile);
   let environment;
   if (config) {
     environment = config.project.name;
   }
   const ignored = [];
+  let found;
   for (let file of fs.readdirSync(dir)) {
     if (file.match(new RegExp(`docker-compose(@${environment})?\\.yml$`))) {
-      return path.join(path.resolve(dir), file);
+      found = path.join(path.resolve(dir), file);
+      break;
     }
     ignored.push(file);
   }
-  throw new Error(`no docker-compose found in ${dir}, these files were ignored:\n - ${ignored.join('\n - ')}`);
+  if (!found) {
+    throw new Error(`no docker-compose found in ${dir}, these files were ignored:\n - ${ignored.join('\n - ')}`);
+  } else {
+    const tmpFile = require('tmp').fileSync({prefix: path.basename(found).replace(/yml$/, ''), postfix: '.yml'});
+    const transformed = await require('rancher-compose-extra')({filePath: found});
+    fs.writeFileSync(tmpFile.name, transformed, 'utf8');
+    debug(`transformed ${found} to temp file ${tmpFile.name}:\n${transformed}`);
+    return tmpFile.name;
+  }
 }
 
 function findRancherCompose({profile, dir}) {
@@ -194,3 +204,4 @@ function client(profileName) {
 
   return new Rancher({address: url, projectId, auth: {secretKey, accessKey}});
 }
+
