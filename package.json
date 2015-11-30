@@ -7,7 +7,7 @@
     "rancher": "./bin/rancher.js"
   },
   "scripts": {
-    "build": "babel src/ -d dist/ --optional runtime",
+    "build": "./node_modules/.bin/babel src/ -d dist/ --optional runtime",
     "prepublish": "npm run build"
   },
   "author": "Nick Delitski",
@@ -21,6 +21,6 @@
     "string-table": "^0.1.5"
   },
   "devDependencies": {
-    "babel-core": "^5.8.33"
+    "babel": "^5.8.33"
   }
 }
