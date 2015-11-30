@@ -6,9 +6,6 @@ const LOG_LEVEL = {
   'debug': 2
 };
 
-const verbosity = LOG_LEVEL[process.env.LOG_LEVEL || 'info'];
-
-
 export function info(...args) {
   log('info', ...args);
 }
@@ -23,6 +20,7 @@ export function error(err) {
 
 function log(severity, ...args) {
   let method;
+  const verbosity = LOG_LEVEL[process.env.LOG_LEVEL || 'info'];
 
   if (LOG_LEVEL[severity] > verbosity) {
     return;

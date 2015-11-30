@@ -18,7 +18,7 @@ Command.prototype.actionAsync = function (fnAsync) {
         process.exit(1);
       });
   });
-}
+};
 
 Command.prototype.composeOptions = function() {
   return this
@@ -27,7 +27,7 @@ Command.prototype.composeOptions = function() {
     .option('-f, --file [docker-compose]', 'Path to `docker-compose` file [default: cwd/docker-compose.yml]')
     .option('-s, --stack [stack-name]', 'Override stack name [default: directory-name]')
     .option('-d, --dir [directory]', 'Directory where to search *compose files [default: cwd]', process.cwd());
-}
+};
 
 const program = new Command();
 
@@ -45,6 +45,9 @@ const configFile = new Config();
 
 program
   .version('0.0.1')
+  .option('-D, --debug', 'Enable debug mode', () => {
+    process.env.LOG_LEVEL='debug';
+  })
   .option('--access-key [accessKey]', 'Rancher API access key', RANCHER_ACCESS_KEY || CATTLE_ACCESS_KEY)
   .option('--secret-key [secretKey]', 'Rancher API secret key', RANCHER_SECRET_KEY || CATTLE_SECRET_KEY)
   .option('--projectId [projectId]', 'Id of Rancher project', RANCHER_PROJECT)
@@ -126,10 +129,10 @@ program
 program
   .command('up')
   .composeOptions()
-  .option('--pull [pull]', 'Before doing the upgrade do an image pull on all hosts that have the image already')
-  .option('--update [update]', 'Upgrade if service has changed')
-  .option('--force_update [update-force]', 'Upgrade regardless if service has changed')
-  .option('--confirm-update [update-confirm]', 'Confirm that the upgrade was success and delete old containers')
+  .option('--pull', 'Before doing the upgrade do an image pull on all hosts that have the image already')
+  .option('--update', 'Upgrade if service has changed')
+  .option('--force_update', 'Upgrade regardless if service has changed')
+  .option('--confirm-update', 'Confirm that the upgrade was success and delete old containers')
   .description('Pass to rancher-compose')
   .actionAsync(async ({file, confirmUpdate, forceUpdate, update, pull, dir, rancher, profile, stack}) => {
     const stackName = stack || path.basename(dir);
