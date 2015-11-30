@@ -42,11 +42,12 @@ export default class Config {
     return (this._loaded || this.load()).selectedProfile;
   }
 
-  profile() {
+  profile(profileName) {
     const config = this._loaded || this.load();
-    if (config.selectedProfile) {
-      if (config.profiles[config.selectedProfile]) {
-        return assign({profileName: config.selectedProfile}, config.profiles[config.selectedProfile]);
+    const profile = profileName || config.selectedProfile;
+    if (profile) {
+      if (config.profiles[profile]) {
+        return assign({profileName: profile}, config.profiles[profile]);
       }
     }
   }

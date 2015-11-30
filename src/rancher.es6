@@ -5,7 +5,8 @@ import $url from 'url';
 import {info, debug, error} from './log';
 import {json} from './helpers';
 import path from 'path';
-import {execFileSync, spawnSync} from 'child_process';
+import {execSync, execFileSync, spawnSync} from 'child_process';
+import fs from 'fs';
 
 const RANCHER_BINARY_PATH = process.env.RANCHER_BINARY_PATH || path.join(__dirname, '../bin/rancher-compose');
 
@@ -28,11 +29,11 @@ export default class RancherClient {
     debug(json`rancher client inited with ${arguments[0]}`);
   }
 
-  exec(cmd) {
+  exec(cmd, cwd) {
     const url = `${this.address}/v1/projects/${this.projectId}`;
     const args = `--access-key ${this.auth.accessKey} --secret-key ${this.auth.secretKey} --url ${url}`.split(/\s+/g).concat(cmd.split(/\s+/g));
     info(`executing ${RANCHER_BINARY_PATH} ${args.join(' ')}`);
-    spawnSync(RANCHER_BINARY_PATH, args, {env: process.env, stdio: 'inherit'});
+    execSync('/usr/local/bin/rancher-compose ' + args.join(' '), {cwd: path.resolve(cwd), env: process.env, stdio: 'inherit'});
   }
 
   async request(options) {
@@ -41,7 +42,7 @@ export default class RancherClient {
     try {
       const res = await axios(merge(options, {
         url: $url.resolve(this.address, options.url),
-        headers: this._auth ? {
+        headers: this.auth ? {
           'Authorization': 'Basic ' + new Buffer(this.auth.accessKey + ':' + this.auth.secretKey).toString('base64')
         } : {},
         responseType: 'json'
@@ -78,7 +79,31 @@ export default class RancherClient {
     rancherComposeFile,
     dockerComposeFile,
   }) {
-    this.exec(`-f ${dockerComposeFile || 'docker-compose.yml'} -p ${stack} up -d`);
+    this.exec(`-f ${dockerComposeFile || 'docker-compose.yml'} ${rancherComposeFile ? '-r '+rancherComposeFile : ''} -p ${stack} up -d`);
+  }
+
+  async compose(cmd, {
+    stack,
+    rancherComposeFile,
+    dockerComposeFile,
+    dir,
+    forceUpdate, confirmUpdate, update, pull
+    }) {
+    const args = [];
+    pull && args.push('--pull');
+    forceUpdate && args.push('--force-recreate');
+    update && args.push('--force-upgrade');
+    confirmUpdate && args.push('--confirm-upgrade');
+    this.exec(`-f ${dockerComposeFile || 'docker-compose.yml'} ${rancherComposeFile ? '-r '+rancherComposeFile : ''} -p ${stack} up -d ${args.join(' ')}`, dir);
+  }
+
+  async up({
+    stack,
+    rancherComposeFile,
+    dockerComposeFile,
+  }) {
+    info('invoking up', stack);
+    this.exec(`-f ${dockerComposeFile || 'docker-compose.yml'} ${rancherComposeFile ? '-r '+rancherComposeFile : ''} -p ${stack} up -d`);
   }
 
   async update({
@@ -88,18 +113,19 @@ export default class RancherClient {
     dockerComposeFile,
   }) {
     info('invoking update', stack, service);
-    debug(`looking for a service: ${stack}/${service}`);
-    const serviceInfo = await this.getService({stack, service});
-    if (serviceInfo && ['removed', 'purged'].indexOf(serviceInfo.state) < 0) {
-      debug(json`service found:\n${serviceInfo}`);
-      this.exec(`-f ${dockerComposeFile || 'docker-compose.yml'} -p ${stack} upgrade ${service} ${service} --scale=${serviceInfo.scale} -w`);
-      const upgradedServiceInfo = await this.getServiceById(serviceInfo.id);
-      if (upgradedServiceInfo.scale !== serviceInfo.scale) {
-        await this.scale({stack, service, dockerComposeFile, scale: serviceInfo.scale})
-      }
-    } else {
-      await this.create({stack, dockerComposeFile, rancherComposeFile});
-    }
+    this.exec(`-f ${dockerComposeFile || 'docker-compose.yml'} ${rancherComposeFile ? '-r '+rancherComposeFile : ''} -p ${stack} up -d`);
+    //debug(`looking for a service: ${stack}/${service}`);
+    //const serviceInfo = await this.getService({stack, service});
+    //if (serviceInfo && ['removed', 'purged'].indexOf(serviceInfo.state) < 0) {
+    //  debug(json`service found:\n${serviceInfo}`);
+    //  this.exec(`-f ${dockerComposeFile || 'docker-compose.yml'} -p ${stack} upgrade ${service} ${service} --scale=${serviceInfo.scale} -w`);
+    //  const upgradedServiceInfo = await this.getServiceById(serviceInfo.id);
+    //  if (upgradedServiceInfo.scale !== serviceInfo.scale) {
+    //    await this.scale({stack, service, dockerComposeFile, scale: serviceInfo.scale})
+    //  }
+    //} else {
+    //  await this.create({stack, dockerComposeFile, rancherComposeFile});
+    //}
   }
 
   _throwNotImplemented() {
