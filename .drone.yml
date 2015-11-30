@@ -12,8 +12,6 @@ cache:
     - .git
 publish:
   docker:
-    when:
-      event: tag
     username: ndelitski
     password: $$DOCKER_PASSWORD
     email: ndelitski@gmail.com
@@ -21,3 +19,11 @@ publish:
     tag:
       - latest
       - $$TAG
+    when:
+      event: tag
+  npm:
+    username: $$NPM_USERNAME
+    password: $$NPM_PASSWORD
+    email: $$NPM_EMAIL
+    when:
+      event: tag
