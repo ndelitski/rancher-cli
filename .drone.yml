@@ -11,6 +11,8 @@ publish:
     password: $$DOCKER_PASSWORD
     email: ndelitski@gmail.com
     repo: ndelitski/rancher-cli
+    environment:
+      NPM_CONFIG_LOGLEVEL: warn
     tag:
       - latest
       - $$TAG
