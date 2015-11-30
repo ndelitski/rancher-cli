@@ -131,7 +131,7 @@ program
   .composeOptions()
   .option('--pull', 'Before doing the upgrade do an image pull on all hosts that have the image already')
   .option('--update', 'Upgrade if service has changed')
-  .option('--force_update', 'Upgrade regardless if service has changed')
+  .option('--force-update', 'Upgrade regardless if service has changed')
   .option('--confirm-update', 'Confirm that the upgrade was success and delete old containers')
   .description('Pass to rancher-compose')
   .actionAsync(async ({file, confirmUpdate, forceUpdate, update, pull, dir, rancher, profile, stack}) => {

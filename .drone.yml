@@ -5,11 +5,6 @@ build:
   commands:
     - npm i
     - npm run build
-  when:
-    event: tag
-cache:
-  mount:
-    - .git
 publish:
   docker:
     username: ndelitski
