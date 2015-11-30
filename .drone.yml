@@ -1,6 +1,7 @@
 build:
   image: node:4.2.1
-  privileged: true
+  environment:
+    NPM_CONFIG_LOGLEVEL: warn
   commands:
     - npm i
     - npm run build
