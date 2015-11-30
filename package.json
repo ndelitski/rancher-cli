@@ -7,7 +7,8 @@
     "rancher": "./bin/rancher.js"
   },
   "scripts": {
-    "build": "babel src/ -d dist/ --optional runtime"
+    "build": "babel src/ -d dist/ --optional runtime",
+    "prepublish": "npm run build"
   },
   "author": "Nick Delitski",
   "license": "ISC",
