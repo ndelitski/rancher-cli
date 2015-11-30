@@ -29,11 +29,12 @@ export default class RancherClient {
     debug(json`rancher client inited with ${arguments[0]}`);
   }
 
-  exec(cmd, cwd) {
+  exec(cmd) {
     const url = `${this.address}/v1/projects/${this.projectId}`;
-    const args = `--access-key ${this.auth.accessKey} --secret-key ${this.auth.secretKey} --url ${url}`.split(/\s+/g).concat(cmd.split(/\s+/g));
+    const args = `--access-key ${this.auth.accessKey} --secret-key ${this.auth.secretKey} --url ${url}`.split(/\s+/g).concat(cmd.split(/\s+/g)).filter((a)=>a);
     info(`executing ${RANCHER_BINARY_PATH} ${args.join(' ')}`);
-    execSync('/usr/local/bin/rancher-compose ' + args.join(' '), {cwd: path.resolve(cwd), env: process.env, stdio: 'inherit'});
+
+    spawnSync(RANCHER_BINARY_PATH, args, {env: process.env, stdio: 'inherit'});
   }
 
   async request(options) {
@@ -86,7 +87,6 @@ export default class RancherClient {
     stack,
     rancherComposeFile,
     dockerComposeFile,
-    dir,
     forceUpdate, confirmUpdate, update, pull
     }) {
     const args = [];
@@ -94,7 +94,7 @@ export default class RancherClient {
     forceUpdate && args.push('--force-recreate');
     update && args.push('--force-upgrade');
     confirmUpdate && args.push('--confirm-upgrade');
-    this.exec(`-f ${dockerComposeFile || 'docker-compose.yml'} ${rancherComposeFile ? '-r '+rancherComposeFile : ''} -p ${stack} up -d ${args.join(' ')}`, dir);
+    this.exec(`-f ${dockerComposeFile || 'docker-compose.yml'} ${rancherComposeFile ? '-r '+rancherComposeFile : ''} -p ${stack} up -d ${args.join(' ')}`);
   }
 
   async up({

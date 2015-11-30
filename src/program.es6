@@ -114,31 +114,6 @@ program
   });
 
 program
-  .command('scale <service> <scale>')
-  .description('Setup scale for service')
-  .composeOptions()
-  .actionAsync(async (service, scale, {file, dir, rancher, profile, stack}) => {
-    const stackName = stack || path.basename(dir);
-    await client(profile).scale({stack: stackName, service, scale, dockerComposeFile: file || findDockerCompose({dir, profile}), rancherComposeFile: rancher || findRancherCompose({profile, dir})});
-  });
-
-//program
-//  .command('up')
-//  .composeOptions()
-//  .description('Up all services in a stack')
-//  .actionAsync(async ({file, rancher, dir, stack, profile}) => {
-//    const stackName = stack || path.basename(dir);
-//    await client(profile).up({stack: stackName, dockerComposeFile: file || findDockerCompose({dir, profile}), rancherComposeFile: rancher || findRancherCompose({profile, dir})});
-//  });
-//
-//program
-//  .command('update <service>')
-//  .description('Create or upgrade service in a stack')
-//  .actionAsync(async (stack, service, {file, rancher, profile}) => {
-//    await client(profile).update({stack, service, dockerComposeFile: file || findDockerCompose(profile), rancherComposeFile: rancher || findRancherCompose(profile)});
-//  });
-
-program
   .command('list [filter]')
   .alias('ls')
   .description('list all services in an environment')
@@ -156,17 +131,12 @@ program
   .option('--force_update [update-force]', 'Upgrade regardless if service has changed')
   .option('--confirm-update [update-confirm]', 'Confirm that the upgrade was success and delete old containers')
   .description('Pass to rancher-compose')
-  .actionAsync(async ({compose, file, confirmUpdate, forceUpdate, update, pull, dir, rancher, profile, stack}) => {
+  .actionAsync(async ({file, confirmUpdate, forceUpdate, update, pull, dir, rancher, profile, stack}) => {
     const stackName = stack || path.basename(dir);
-    const cwd = process.cwd();
     const dockerComposeFile =  file || findDockerCompose({dir, profile});
     const rancherComposeFile = rancher || findRancherCompose({profile, dir});
-    if (cwd != dir) {
-      process.chdir(dir);
-    }
     await client(profile).compose('up', {dir, forceUpdate, confirmUpdate, update, pull, stack: stackName, dockerComposeFile , rancherComposeFile});
   });
-
 
 
 program.parse(process.argv);
@@ -183,7 +153,7 @@ function findDockerCompose({profile, dir}) {
   const ignored = [];
   for (let file of fs.readdirSync(dir)) {
     if (file.match(new RegExp(`docker-compose(@${environment})?\\.yml$`))) {
-      return file;
+      return path.join(path.resolve(dir), file);
     }
     ignored.push(file);
   }
@@ -198,7 +168,7 @@ function findRancherCompose({profile, dir}) {
   }
   for (let file of fs.readdirSync(dir)) {
     if (file.match(new RegExp(`rancher-compose(@${environment})?\\.yml$`))) {
-      return file;
+      return path.join(path.resolve(dir), file);
     }
   }
 }
