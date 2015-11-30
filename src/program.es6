@@ -44,7 +44,7 @@ const {
 const configFile = new Config();
 
 program
-  .version('0.0.1')
+  .version(require('../package.json').version)
   .option('-D, --debug', 'Enable debug mode', () => {
     process.env.LOG_LEVEL='debug';
   })
