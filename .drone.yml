@@ -5,17 +5,14 @@ build:
   commands:
     - npm i
     - npm run build
-  when:
-    event: tag
-cache:
-  mount:
-    - .git
 publish:
   docker:
     username: ndelitski
     password: $$DOCKER_PASSWORD
     email: ndelitski@gmail.com
     repo: ndelitski/rancher-cli
+    environment:
+      NPM_CONFIG_LOGLEVEL: warn
     tag:
       - latest
       - $$TAG
