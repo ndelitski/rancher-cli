@@ -136,7 +136,7 @@ export default class RancherClient {
   }
 
   async findServiceByRegExpAsync(re, predicate) {
-    console.log(re);
+    debug(`searching services to match RegExp: ${re}`);
     assert(!predicate || _.isFunction(predicate), '`predicate` should be a Function');
 
     const [stacks, services] = await Promise.all([
@@ -214,7 +214,7 @@ export default class RancherClient {
     });
 
     ws.on('message', function (data, flags) {
-      process.stdout.write(data);
+      !flags.masked && process.stdout.write(flags.buffer);
       // flags.binary will be set if a binary data is received.
       // flags.masked will be set if the data was masked.
     });
