@@ -8,6 +8,8 @@ import path from 'path';
 import {execSync, execFileSync, spawnSync} from 'child_process';
 import fs from 'fs';
 import B from 'bluebird';
+import WebSocket from 'ws';
+import Deferred from './deferred';
 
 const RANCHER_BINARY_PATH = process.env.RANCHER_BINARY_PATH || path.join(__dirname, '../bin/rancher-compose');
 
@@ -131,10 +133,10 @@ export default class RancherClient {
 
   async execServicesActionAsync(services, actionName) {
     const responses = await B.all(services).map((s) => this.request({method: 'POST', url: $url.parse(s.actions[actionName]).path}));
-    //console.log(responses);
   }
 
   async findServiceByRegExpAsync(re, predicate) {
+    console.log(re);
     assert(!predicate || _.isFunction(predicate), '`predicate` should be a Function');
 
     const [stacks, services] = await Promise.all([
@@ -148,6 +150,7 @@ export default class RancherClient {
 
     for (let s of services) {
       const stackName = stacksIndex[s.environmentId].name;
+      s.stackName = stackName;
       s.fullName = `${stackName}.${s.name}`;
       if (re.test(s.fullName)) {
         if (!predicate || predicate(s)) {
@@ -159,6 +162,82 @@ export default class RancherClient {
     }
 
     return matched;
+  }
+
+  async _issueLogsTokenAsync({containerId, lines, follow}) {
+    debug(`requesting logs lines=${lines}, follow=${follow}`);
+    const {token, url} = await this.request({
+      method: 'POST',
+      url: '/v1/containers/' + containerId,
+      params: {action: 'logs'},
+      data: {
+        follow,
+        lines
+      }
+    });
+
+    return {token, url};
+  }
+
+  async pollContainerActionBecomeAvailableAsync({containerId, action, interval = 2000}) {
+    const poll = async () => {
+      const {actions} = await this.request({url: '/v1/projects/1a74/containers/' + containerId});
+      return !actions[action];
+    }
+
+    while(await poll()) {
+      await B.delay(interval);
+    }
+  }
+
+  async followLogsAsync({containerId, cancellation, lines, follow}={}) {
+    await this.pollContainerActionBecomeAvailableAsync({containerId, action: 'logs'});
+    const {url, token} = await this._issueLogsTokenAsync({containerId, lines, follow});
+    const wsUrl = url + '?token=' + token;
+    const completion = new Deferred();
+    let isOpened;
+
+    //assert(cancellation.isPending(), 'cancelled');
+    const onCancelled = (err) => {
+      cancelledByUser = true;
+      err ? completion.reject(err) : completion.resolve();
+      ws.close()
+    }
+
+    cancellation.then(onCancelled, onCancelled);
+
+    var ws = new WebSocket(wsUrl);
+
+    ws.on('open', function open() {
+      isOpened = true;
+      debug(`websocket opened by ${wsUrl}`);
+    });
+
+    ws.on('message', function (data, flags) {
+      process.stdout.write(data);
+      // flags.binary will be set if a binary data is received.
+      // flags.masked will be set if the data was masked.
+    });
+
+    let cancelledByUser;
+
+    ws.on('close', () => {
+      if (follow && !cancelledByUser) {
+        debug(`reconnecting`);
+        setTimeout(() => {
+          this.followLogsAsync({containerId, cancellation, lines: 0})
+            .then(() => cancellation.resolve(), (err) => cancellation.reject(err));
+        }, 5000);
+      } else {
+        completion.resolve();
+      }
+
+      debug(`websocket closed`);
+    });
+
+
+
+    await completion.promise;
   }
 
   async _waitConfirm(confirmFn) {

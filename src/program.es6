@@ -4,9 +4,11 @@ import Rancher from './rancher';
 import assert from 'assert';
 import prompt from './prompt';
 import Config from './config';
-import {pick} from 'lodash';
+import _, {pick} from 'lodash';
 import stringTable from 'string-table';
 import {json} from './helpers';
+import Deferred from './deferred';
+import B from 'bluebird';
 
 Command.prototype.actionAsync = function (fnAsync) {
   return this.action((...args) => {
@@ -154,7 +156,7 @@ program
   });
 
 program
-  .command('start [regexp]')
+  .command('start <regexp>')
   .composeOptions()
   .description('Start stopped services by regexp')
   .actionAsync(async (re, {profile}) => {
@@ -163,6 +165,54 @@ program
       name: 'isConfirmed',
       message: 'Proceed?'
     })).isConfirmed);
+  });
+program
+  .command('logs <containerIdOrStackName>')
+  .option('-l, --lines [lines]', 'Number of lines to prefetch', 100)
+  .option('-f, --follow', 'Follow logs')
+  .composeOptions()
+  .description('Start stopped services by regexp')
+  .actionAsync(async (containerIdOrStackName, {profile, lines, follow}) => {
+    let containerId;
+    const cl = client(profile);
+    if (containerIdOrStackName.slice(0, 2) == '1i') {
+      containerId = containerIdOrStackName;
+    }
+
+    if (!containerId) {
+      const services = await cl.findServiceByRegExpAsync(new RegExp(`${containerIdOrStackName}[^\\.]*\\.\\S+`));
+
+      const containers = _.flatten(await B.all(services).map(async (s) => {
+        const list = await cl.getServiceContainers(s.id);
+        for (let c of list) {
+          c.serviceName = s.name;
+          c.stackName = s.stackName;
+        }
+        return list;
+      }));
+
+      const choices = containers.map((c) => `${c.stackName}/${c.serviceName}/${c.name} [${c.id}]`);
+      const {selected} = await prompt([{
+        type: "list",
+        name: "selected",
+        message: "Select container",
+        choices: choices
+      }]);
+
+      containerId = selected.match(/\[(\S+)\]$/)[1];
+      if (!containerId) {
+        throw new Error('failed to match containeriD from ' + selected);
+      }
+    }
+
+    const cancellation = new Deferred();
+
+    process.on('SIGINT', () => {
+      info('cancelling');
+      cancellation.resolve();
+    });
+
+    await cl.followLogsAsync({containerId, follow: !!follow, lines, cancellation: cancellation.promise});
   });
 
 program.parse(process.argv);
