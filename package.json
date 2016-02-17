@@ -1,6 +1,6 @@
 {
   "name": "rancher-cli",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Rancher CLI interface",
   "preferGlobal": "true",
   "bin": {
