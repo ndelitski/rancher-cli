@@ -21,7 +21,8 @@
     "lodash": "^3.10.1",
     "rancher-compose-extra": "^0.1.2",
     "string-table": "^0.1.5",
-    "tmp": "0.0.28"
+    "tmp": "0.0.28",
+    "ws": "^1.0.1"
   },
   "devDependencies": {
     "babel": "^5.8.33"
