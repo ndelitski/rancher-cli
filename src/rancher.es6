@@ -1,12 +1,13 @@
 import axios from 'axios';
 import assert from 'assert';
-import {merge, omit, find} from 'lodash';
+import _, {merge, omit, find} from 'lodash';
 import $url from 'url';
 import {info, debug, error} from './log';
 import {json} from './helpers';
 import path from 'path';
 import {execSync, execFileSync, spawnSync} from 'child_process';
 import fs from 'fs';
+import B from 'bluebird';
 
 const RANCHER_BINARY_PATH = process.env.RANCHER_BINARY_PATH || path.join(__dirname, '../bin/rancher-compose');
 
@@ -126,6 +127,82 @@ export default class RancherClient {
     //} else {
     //  await this.create({stack, dockerComposeFile, rancherComposeFile});
     //}
+  }
+
+  async execServicesActionAsync(services, actionName) {
+    const responses = await B.all(services).map((s) => this.request({method: 'POST', url: $url.parse(s.actions[actionName]).path}));
+    console.log(responses);
+  }
+
+  async findServiceByRegExpAsync(re, predicate) {
+    assert(!predicate || _.isFunction(predicate), '`predicate` should be a Function');
+
+    const [stacks, services] = await Promise.all([
+      await this.getStacks(),
+      await this.getServices()
+    ]);
+
+    const servicesIndex = _.indexBy(services, 'id');
+    const stacksIndex = _.indexBy(stacks, 'id');
+    const matched = [];
+
+    for (let s of services) {
+      const stackName = stacksIndex[s.environmentId].name;
+      s.fullName = `${stackName}.${s.name}`;
+      if (re.test(s.fullName)) {
+        if (!predicate || predicate(s)) {
+          matched.push(s);
+        } else {
+          debug(`${s.fullName} is not active - ignoring`);
+        }
+      }
+    }
+
+    return matched;
+  }
+
+  async _waitConfirm(confirmFn) {
+    assert(_.isFunction(confirmFn), 'confirm should be a async function');
+    await confirmFn();
+    //try {
+    //  await B.resolve(confirmFn()).timeout(10000);
+    //} catch (err) {
+    //  if (err instanceof B.TimeoutError) {
+    //    console.log('\nSorry you are late!');
+    //    process.exit(1);
+    //  }
+    //  throw err;
+    //}
+  }
+
+  async stopByRegExpAsync(re, confirmFn) {
+    const matched = await this.findServiceByRegExpAsync(re, (s) => s.state == 'active');
+
+    if (matched.length) {
+      info(`these ${matched.length} sevices will be stopped:\n${_.pluck(matched, 'fullName').join('\n')}`);
+    } else {
+      info('no services will be stopped');
+      return;
+    }
+
+    confirmFn && await this._waitConfirm(confirmFn);
+
+    await this.execServicesActionAsync(matched, 'deactivate');
+  }
+
+  async startByRegExpAsync(re, confirmFn) {
+    const matched = await this.findServiceByRegExpAsync(re, (s) => s.state == 'inactive');
+
+    if (matched.length) {
+      info(`these ${matched.length} sevices will be started:\n${_.pluck(matched, 'fullName').join('\n')}`);
+    } else {
+      info('no services will be started');
+      return;
+    }
+
+    confirmFn && await this._waitConfirm(confirmFn);
+
+    await this.execServicesActionAsync(matched, 'activate');
   }
 
   _throwNotImplemented() {

@@ -141,6 +141,29 @@ program
     await client(profile).compose('up', {dir, forceUpdate, confirmUpdate, update, pull, stack: stackName, dockerComposeFile , rancherComposeFile});
   });
 
+program
+  .command('stop [regexp]')
+  .composeOptions()
+  .description('Stop running services by regexp')
+  .actionAsync(async (re, {profile}) => {
+    await client(profile).stopByRegExpAsync(new RegExp(re), async () => (await prompt({
+      type: 'confirm',
+      name: 'isConfirmed',
+      message: 'Proceed?'
+    })).isConfirmed);
+  });
+
+program
+  .command('start [regexp]')
+  .composeOptions()
+  .description('Start stopped services by regexp')
+  .actionAsync(async (re, {profile}) => {
+    await client(profile).startByRegExpAsync(new RegExp(re), async () => (await prompt({
+      type: 'confirm',
+      name: 'isConfirmed',
+      message: 'Proceed?'
+    })).isConfirmed);
+  });
 
 program.parse(process.argv);
 
