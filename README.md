@@ -21,8 +21,21 @@ I am using `rancher-cli` container to process deploy operations to many environm
 
 ### init
 Create `.rancher` file in a user home directory
+
+### logs
+Getting last 200 lines and follow.
+```
+rancher logs [regex] -l 200 -f
+```
+### start/stop
+Start or stop multiple services using regexp to match stack/service
+```
+rancher stop/start [regex]
+```
+
 ### up
 If service is not created - trigger launch, otherwise `upgrade` command will be used.
+
 ### ls
 List services and stacks in environment
 ### compose
