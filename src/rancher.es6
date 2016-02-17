@@ -131,7 +131,7 @@ export default class RancherClient {
 
   async execServicesActionAsync(services, actionName) {
     const responses = await B.all(services).map((s) => this.request({method: 'POST', url: $url.parse(s.actions[actionName]).path}));
-    console.log(responses);
+    //console.log(responses);
   }
 
   async findServiceByRegExpAsync(re, predicate) {
