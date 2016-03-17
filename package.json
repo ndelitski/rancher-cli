@@ -13,7 +13,7 @@
   "author": "Nick Delitski",
   "license": "ISC",
   "dependencies": {
-    "axios": "^0.7.0",
+    "axios": "^0.9.1",
     "babel-runtime": "^5.8.33",
     "bluebird": "^3.3.1",
     "commander": "^2.9.0",

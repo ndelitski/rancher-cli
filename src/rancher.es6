@@ -29,6 +29,27 @@ export default class RancherClient {
     this.address = address;
     this.projectId = projectId;
     this.auth = auth;
+    this.axios = axios.create({
+      baseURL: address,
+      headers: this.auth ? {
+        'Authorization': 'Basic ' + new Buffer(this.auth.accessKey + ':' + this.auth.secretKey).toString('base64')
+      } : {},
+      responseType: 'json'
+    });
+
+    this.axios.interceptors.request.use(function (config) {
+      debug(`>> Begin API request ${config.method || 'GET'} ${config.url} options: ${JSON.stringify(_.pick(config, 'data', 'params', 'headers'))}`);
+
+      return config;
+    });
+
+    this.axios.interceptors.response.use(function (resp) {
+      const {config, data, status} = resp;
+      debug(`<< Receive API response ${config.method || 'GET'} ${config.url} ${status}: ${JSON.stringify(data)}`);
+
+      return resp;
+    });
+
     debug(json`rancher client inited with ${arguments[0]}`);
   }
 
@@ -44,13 +65,7 @@ export default class RancherClient {
     assert(options.url, 'request `url` is missing');
 
     try {
-      const res = await axios(merge(options, {
-        url: $url.resolve(this.address, options.url),
-        headers: this.auth ? {
-          'Authorization': 'Basic ' + new Buffer(this.auth.accessKey + ':' + this.auth.secretKey).toString('base64')
-        } : {},
-        responseType: 'json'
-      }));
+      const res = await this.axios.request(options);
       return res.data
     }
     catch (resp) {
@@ -59,6 +74,7 @@ export default class RancherClient {
       throw err;
     }
   }
+
   async requestProjects(path) {
     assert(this.projectId, '`projectId` is missing');
 
@@ -181,7 +197,7 @@ export default class RancherClient {
 
   async pollContainerActionBecomeAvailableAsync({containerId, action, interval = 2000}) {
     const poll = async () => {
-      const {actions} = await this.request({url: '/v1/projects/1a74/containers/' + containerId});
+      const {actions} = await this.request({url: `/v1/containers/${containerId}`});
       return !actions[action];
     }
 
@@ -190,7 +206,7 @@ export default class RancherClient {
     }
   }
 
-  async followLogsAsync({containerId, cancellation, lines, follow}={}) {
+  async followLogsAsync({containerId, cancellation, lines, follow, stripDates = true}={}) {
     await this.pollContainerActionBecomeAvailableAsync({containerId, action: 'logs'});
     const {url, token} = await this._issueLogsTokenAsync({containerId, lines, follow});
     const wsUrl = url + '?token=' + token;
@@ -214,7 +230,14 @@ export default class RancherClient {
     });
 
     ws.on('message', function (data, flags) {
-      !flags.masked && process.stdout.write(flags.buffer);
+      if (!flags.masked) {
+        if (stripDates) {
+          const str = flags.buffer.toString('utf8');
+          process.stdout.write(str.replace(/^\d{4}-\d{2}-\S+Z/mg, '').replace(/^00\s+/mg, ''));
+        } else {
+          process.stdout.write(flags.buffer);
+        }
+      }
       // flags.binary will be set if a binary data is received.
       // flags.masked will be set if the data was masked.
     });
