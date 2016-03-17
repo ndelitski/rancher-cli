@@ -180,7 +180,7 @@ program
     }
 
     if (!containerId) {
-      const services = await cl.findServiceByRegExpAsync(new RegExp(`${containerIdOrStackName}[^\\.]*\\.\\S+`));
+      const services = await cl.findServiceByRegExpAsync(new RegExp(_.escapeRegExp(containerIdOrStackName)));
 
       const containers = _.flatten(await B.all(services).map(async (s) => {
         const list = await cl.getServiceContainers(s.id);
